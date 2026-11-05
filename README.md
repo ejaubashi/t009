@@ -1,6 +1,6 @@
 # endy.j
 
-An animated creative studio website inspired by the supplied desktop recordings. Built with Vite, vanilla JavaScript, and Three.js. All artwork is generated locally with WebGL and CSS; no remote media is required.
+An animated creative studio website inspired by the supplied desktop recordings. Built with Vite, vanilla JavaScript, Three.js, and Lenis. All artwork is generated locally with WebGL and CSS; no remote media is required.
 
 ## Develop
 
@@ -18,7 +18,7 @@ npm run build
 npm run preview
 ```
 
-The site includes a loader, interactive 3D hero, responsive gallery, project dialogs, navigation overlay, optional synthesized ambient audio, reduced-motion support, and contact links.
+The site includes a 3D object countdown, individually animated endy.j lettering with cycling chrome and pink materials, a morphing black backdrop, smooth scrolling, reversible parallax, a responsive gallery, project dialogs, navigation overlay, optional synthesized ambient audio, reduced-motion support, and contact links. The motion sequence is recreated procedurally from the supplied recordings; it does not contain the original animation files.
 
 ## Before publishing
 

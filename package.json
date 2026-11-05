@@ -10,6 +10,7 @@
     "build:pages": "vite build --outDir docs && node -e \"require('node:fs').writeFileSync('docs/.nojekyll', '')\""
   },
   "dependencies": {
+    "lenis": "^1.3.27",
     "three": "^0.180.0"
   },
   "devDependencies": {

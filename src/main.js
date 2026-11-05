@@ -1,29 +1,19 @@
-import * as THREE from 'three';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { initMotion } from './motion.js';
+import Lenis from 'lenis';
+import 'lenis/dist/lenis.css';
 
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const loader = document.querySelector('#loader');
-document.body.classList.add('loading');
-const started = performance.now();
-const symbols = ['✳', '◒', '✦', '◉', '✺', '♡'];
-function loadFrame(now) {
-  const progress = Math.min((now - started) / (reduced ? 100 : 2200), 1);
-  document.querySelector('#load-count').textContent = String(Math.round(100 * (1 - progress))).padStart(3, '0');
-  document.querySelector('#loader-object').textContent = symbols[Math.min(5, Math.floor(progress * 6))];
-  if (progress < 1) requestAnimationFrame(loadFrame);
-  else { loader.classList.add('done'); document.body.classList.remove('loading'); setTimeout(() => loader.remove(), 1100); }
-}
-requestAnimationFrame(loadFrame);
-
+initMotion(reduced);
+const lenis = reduced ? null : new Lenis({autoRaf:true, anchors:true, lerp:.085, smoothWheel:true, prevent: node => node.closest('dialog, #navigation')});
 const menuButton = document.querySelector('#menu-toggle');
 const navigation = document.querySelector('#navigation');
-function closeMenu() { document.body.classList.remove('menu-open'); menuButton.setAttribute('aria-expanded', 'false'); navigation.setAttribute('aria-hidden', 'true'); navigation.inert = true; }
+function closeMenu() { document.body.classList.remove('menu-open'); menuButton.setAttribute('aria-expanded', 'false'); navigation.setAttribute('aria-hidden', 'true'); navigation.inert = true; lenis?.start(); }
 navigation.inert = true;
 menuButton.addEventListener('click', () => {
   const open = !document.body.classList.contains('menu-open');
   document.body.classList.toggle('menu-open', open);
   menuButton.setAttribute('aria-expanded', String(open));
-  navigation.setAttribute('aria-hidden', String(!open)); navigation.inert = !open;
+  navigation.setAttribute('aria-hidden', String(!open)); navigation.inert = !open; if(open) lenis?.stop(); else lenis?.start();
 });
 navigation.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
@@ -55,8 +45,9 @@ document.querySelectorAll('.project').forEach(project => project.addEventListene
   const meta = document.createElement('p'); meta.className = 'project-meta'; meta.textContent = services;
   const contact = document.createElement('a'); contact.className = 'pill dark'; contact.href = 'mailto:hello@endy.j'; contact.textContent = 'LET’S MAKE SOMETHING ↗';
   detail.append(eyebrow, heading, subheading, image, body, meta, contact);
-  dialog.showModal();
+  dialog.showModal(); lenis?.stop();
 }));
+dialog.addEventListener('close', () => lenis?.start());
 document.querySelector('#close-project').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', e => { if (e.target === dialog) { const rect = dialog.getBoundingClientRect(); if(e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) dialog.close(); } });
 
@@ -91,37 +82,4 @@ if (matchMedia('(pointer:fine)').matches) {
   window.addEventListener('pointermove', e => { cursor.style.left = `${e.clientX}px`; cursor.style.top = `${e.clientY}px`; });
   document.querySelectorAll('.project').forEach(el => { el.addEventListener('pointerenter', () => cursor.classList.add('active')); el.addEventListener('pointerleave', () => cursor.classList.remove('active')); });
   document.querySelectorAll('.project').forEach(el => el.addEventListener('click', () => cursor.classList.remove('active')));
-}
-
-const hero = document.querySelector('.hero');
-const art = document.querySelector('#hero-art');
-try {
-  const renderer = new THREE.WebGLRenderer({ alpha:true, antialias:true, powerPreference:'low-power' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75)); renderer.setClearColor(0x000000, 0); renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.6;
-  art.appendChild(renderer.domElement);
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(32, 1, .1, 100); camera.position.set(0,0,9);
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const room = new RoomEnvironment(); const environment = pmrem.fromScene(room, .04); scene.environment = environment.texture; room.dispose(); pmrem.dispose();
-  const group = new THREE.Group(); scene.add(group);
-  const material = new THREE.MeshPhysicalMaterial({color:0xce64a6,metalness:.94,roughness:.2,clearcoat:1,clearcoatRoughness:.08,iridescence:.8,iridescenceIOR:1.5,iridescenceThicknessRange:[100,400]});
-  const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(1.02,.34,200,32,2,3), material); knot.rotation.set(.4, .2, -.4); group.add(knot);
-  const chrome = new THREE.MeshPhysicalMaterial({color:0xe5dcec,metalness:1,roughness:.13,clearcoat:1});
-  const satellite = new THREE.Mesh(new THREE.TorusGeometry(.35,.13,24,80), chrome); satellite.position.set(-1.6,.8,-.5); satellite.rotation.set(.8,.5,.2);group.add(satellite);
-  const star = new THREE.Mesh(new THREE.IcosahedronGeometry(.28,0),new THREE.MeshPhysicalMaterial({color:0x7063ff,metalness:.8,roughness:.15}));star.position.set(1.5,-.7,.2);group.add(star);
-  scene.add(new THREE.HemisphereLight(0xffffff,0x241523,2));
-  const light = new THREE.DirectionalLight(0xffffff,4);light.position.set(4,5,6);scene.add(light);
-  let pointerX=0,pointerY=0,scroll=0,visible=true;
-  window.addEventListener('pointermove', e => {pointerX=(e.clientX/innerWidth-.5); pointerY=(e.clientY/innerHeight-.5);},{passive:true});
-  window.addEventListener('scroll',()=>{scroll=window.scrollY;},{passive:true});
-  const heroObserver=new IntersectionObserver(entries=>{visible=entries[0].isIntersecting;});heroObserver.observe(hero);
-  function resize(){const {width,height}=hero.getBoundingClientRect();renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();group.scale.setScalar(width<700?.43:.75);}
-  new ResizeObserver(resize).observe(hero); resize();
-  const time = new THREE.Clock();
-  function animate(){requestAnimationFrame(animate);if(!visible || document.hidden)return;const t=time.getElapsedTime();if(!reduced){knot.rotation.y=t*.19+pointerX*.3;knot.rotation.z=Math.sin(t*.22)*.25-.3;knot.rotation.x=.35+Math.sin(t*.3)*.2;group.position.y=Math.sin(t*.7)*.12+scroll*.0015;group.position.x+=(pointerX*.3-group.position.x)*.025;satellite.rotation.x=t*.3;star.rotation.y=t*.5;const hue=.88+Math.sin(t*.16)*.09;material.color.setHSL(hue,.55,.57);}renderer.render(scene,camera);}
-  animate();
-  if(!reduced)setTimeout(()=>document.querySelector('.ink').classList.add('active'),6500);
-} catch(error) {
-  console.warn('WebGL unavailable; using static art.');
-  art.innerHTML='<div class="fallback-sculpture" aria-hidden="true">✳</div>';
 }
